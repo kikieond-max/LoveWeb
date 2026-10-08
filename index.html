@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>끝없는 연애 밸런스 게임 - Love Balance</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts (Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #fff5f7 0%, #fed7e2 50%, #fbcfe8 100%);
+      min-height: 100vh;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .choice-btn {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .choice-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px -8px rgba(236, 72, 153, 0.3);
+    }
+
+    .choice-btn:active {
+      transform: translateY(-1px);
+    }
+
+    /* VS 애니메이션 */
+    @keyframes pulse-vs {
+      0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); }
+      50% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+    }
+    .animate-vs {
+      animation: pulse-vs 2.5s infinite ease-in-out;
+    }
+
+    /* 프로그레스 바 애니메이션 */
+    .bar-fill {
+      transition: width 1s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="text-gray-800 antialiased pb-12">
+
+  <!-- 헤더 / 네비게이션 -->
+  <header class="sticky top-0 z-50 glass-card border-b border-pink-100 px-4 py-3 shadow-sm">
+    <div class="max-w-3xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2 cursor-pointer select-none" onclick="switchMode('balance')">
+        <span class="text-2xl">💖</span>
+        <h1 class="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-purple-600">
+          연애 밸런스 WORLD
+        </h1>
+      </div>
+      <div class="flex items-center space-x-2 text-sm font-bold">
+        <button id="soundToggleBtn" onclick="toggleSound()" class="p-2 rounded-full bg-white text-gray-600 hover:text-pink-600 shadow-sm transition" title="소리 켜기/끄기">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+        </button>
+        <span class="text-xs text-pink-600 font-bold bg-pink-100 px-3 py-1.5 rounded-full">
+          답변한 문제: <span id="answeredCount">0</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 탭 네비게이션 -->
+  <div class="max-w-3xl mx-auto px-4 mt-4">
+    <div class="flex bg-white/80 p-1 rounded-xl shadow-inner border border-pink-100 font-bold text-sm">
+      <button onclick="switchMode('balance')" id="tab-balance" class="flex-1 py-2.5 rounded-lg text-center transition bg-pink-500 text-white shadow-sm">
+        <i class="fa-solid fa-scale-balanced mr-1"></i> 무한 밸런스
+      </button>
+      <button onclick="switchMode('test')" id="tab-test" class="flex-1 py-2.5 rounded-lg text-center transition text-gray-500 hover:text-pink-600">
+        <i class="fa-solid fa-clipboard-question mr-1"></i> 연애성향 진단
+      </button>
+      <button onclick="switchMode('custom')" id="tab-custom" class="flex-1 py-2.5 rounded-lg text-center transition text-gray-500 hover:text-pink-600">
+        <i class="fa-solid fa-plus-circle mr-1"></i> 질문 만들기
+      </button>
+    </div>
+  </div>
+
+  <!-- 메인 콘텐트 영역 -->
+  <main class="max-w-3xl mx-auto px-4 mt-6">
+
+    <!-- 1. 무한 밸런스 게임 모드 -->
+    <section id="mode-balance" class="block space-y-6">
+      
+      <!-- 카테고리 필터 -->
+      <div class="flex flex-wrap gap-2 justify-center text-xs font-semibold">
+        <button onclick="setCategory('ALL')" class="cat-btn bg-pink-600 text-white px-3.5 py-1.5 rounded-full transition shadow-sm font-bold" data-cat="ALL">전체보기</button>
+        <button onclick="setCategory('jealousy')" class="cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200" data-cat="jealousy">🔥 질투·경계</button>
+        <button onclick="setCategory('values')" class="cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200" data-cat="values">💭 연애가치관</button>
+        <button onclick="setCategory('bizarre')" class="cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200" data-cat="bizarre">🤪 황당·상상</button>
+        <button onclick="setCategory('money')" class="cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200" data-cat="money">💰 현실·돈</button>
+        <button onclick="setCategory('spicy')" class="cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200" data-cat="spicy">🌶️ 매운맛/19금</button>
+      </div>
+
+      <!-- 밸런스 카드 카드 상자 -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-white">
+        
+        <!-- 상단 카테고리 및 질문 태그 -->
+        <div class="flex justify-between items-center mb-4">
+          <span id="questionCategoryTag" class="text-xs font-bold text-pink-600 bg-pink-100 px-3 py-1 rounded-full uppercase tracking-wider">
+            🔥 질투·경계
+          </span>
+          <button onclick="nextQuestion()" class="text-xs text-gray-500 hover:text-pink-600 font-semibold flex items-center space-x-1 bg-white/60 px-2.5 py-1 rounded-lg border border-gray-200 transition">
+            <span>건너뛰기</span>
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+
+        <!-- 질문 제목 -->
+        <h2 id="questionTitle" class="text-xl sm:text-2xl font-extrabold text-gray-900 text-center my-6 leading-snug">
+          질문이 로딩 중입니다...
+        </h2>
+
+        <!-- 선택지 A / B 컨테이너 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 relative my-6 items-stretch">
+          
+          <!-- VS 중앙 배지 (데스크톱 전용) -->
+          <div class="absolute left-1/2 top-1/2 z-20 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black text-base shadow-xl border-4 border-white animate-vs pointer-events-none select-none">
+            VS
+          </div>
+
+          <!-- Option A -->
+          <button id="btnA" onclick="chooseOption('A')" class="choice-btn group relative bg-gradient-to-br from-rose-50 to-pink-100 hover:from-rose-100 hover:to-pink-200 border-2 border-rose-200 rounded-2xl p-6 md:pr-10 text-left flex flex-col justify-between min-h-[170px] select-none">
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-md bg-rose-500 text-white text-xs font-black mb-3 shadow-sm">선택 A</span>
+              <p id="textA" class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed group-hover:text-rose-900">
+                선택지 A 내용
+              </p>
+            </div>
+            <!-- 결과 통계 바 (선택 전 숨김) -->
+            <div id="resultA" class="hidden mt-4 w-full">
+              <div class="flex justify-between text-xs font-bold mb-1 text-rose-700">
+                <span id="labelA">선택률</span>
+                <span id="percentA" class="text-sm font-black">0%</span>
+              </div>
+              <div class="w-full bg-rose-200 rounded-full h-3 overflow-hidden">
+                <div id="barA" class="bar-fill bg-rose-500 h-full w-0"></div>
+              </div>
+            </div>
+          </button>
+
+          <!-- Mobile Only VS -->
+          <div class="md:hidden flex justify-center -my-3 z-10">
+            <span class="bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-black px-4 py-1.5 rounded-full shadow-md border-2 border-white select-none">VS</span>
+          </div>
+
+          <!-- Option B -->
+          <button id="btnB" onclick="chooseOption('B')" class="choice-btn group relative bg-gradient-to-br from-purple-50 to-indigo-100 hover:from-purple-100 hover:to-indigo-200 border-2 border-purple-200 rounded-2xl p-6 md:pl-10 text-left flex flex-col justify-between min-h-[170px] select-none">
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-md bg-purple-600 text-white text-xs font-black mb-3 shadow-sm">선택 B</span>
+              <p id="textB" class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed group-hover:text-purple-900">
+                선택지 B 내용
+              </p>
+            </div>
+            <!-- 결과 통계 바 (선택 전 숨김) -->
+            <div id="resultB" class="hidden mt-4 w-full">
+              <div class="flex justify-between text-xs font-bold mb-1 text-purple-700">
+                <span id="labelB">선택률</span>
+                <span id="percentB" class="text-sm font-black">0%</span>
+              </div>
+              <div class="w-full bg-purple-200 rounded-full h-3 overflow-hidden">
+                <div id="barB" class="bar-fill bg-purple-600 h-full w-0"></div>
+              </div>
+            </div>
+          </button>
+
+        </div>
+
+        <!-- AI 피드백 / 코멘트 상자 (선택 후 등장) -->
+        <div id="commentBox" class="hidden bg-white/90 border border-pink-200 rounded-2xl p-4 mt-6 text-center shadow-inner">
+          <p id="commentText" class="text-sm sm:text-base font-bold text-pink-700">
+            💬 AI 한줄평: "당신은 극단적인 주관을 가지고 있군요!"
+          </p>
+        </div>
+
+        <!-- 다음 버튼 하단 영역 -->
+        <div class="mt-6 flex justify-between items-center pt-2">
+          <button onclick="shareCurrentQuestion()" class="text-xs text-gray-600 hover:text-pink-600 font-bold bg-white/90 hover:bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 shadow-sm flex items-center space-x-1.5 transition">
+            <i class="fa-regular fa-share-from-square"></i>
+            <span>질문 공유</span>
+          </button>
+
+          <button id="nextBtn" onclick="nextQuestion()" class="hidden bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-extrabold px-6 py-3 rounded-2xl shadow-lg transition transform hover:scale-105 flex items-center space-x-2">
+            <span>다음 밸런스 질문</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. 연애성향 & 꼰대지수 진단 테스트 모드 -->
+    <section id="mode-test" class="hidden space-y-6">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white">
+        
+        <!-- 테스트 소개 화면 -->
+        <div id="testIntro" class="text-center py-6 space-y-4">
+          <div class="inline-block p-4 bg-pink-100 rounded-full text-pink-600 text-3xl mb-2">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <h2 class="text-2xl font-black text-gray-900">내 연애 성향 & 꼰대 지수 진단</h2>
+          <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            10개의 심층 밸런스 질문을 통해 나의 집착도, 쿨함 지수, 로맨티시스트 성향 및 연애 꼰대 지수를 세밀하게 측정해 드립니다!
+          </p>
+          <button onclick="startTest()" class="mt-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold text-lg px-8 py-3.5 rounded-2xl shadow-lg hover:shadow-pink-300 hover:scale-105 transition">
+            진단 시작하기
+          </button>
+        </div>
+
+        <!-- 테스트 진행 화면 -->
+        <div id="testQuiz" class="hidden space-y-6">
+          <div class="flex justify-between items-center text-xs font-bold text-gray-500">
+            <span id="testStep">진행도: 1 / 10</span>
+            <span id="testPercent">10%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="testProgressBar" class="bg-pink-500 h-2 rounded-full transition-all duration-300" style="width: 10%;"></div>
+          </div>
+
+          <h3 id="testQuestionTitle" class="text-xl font-bold text-gray-900 text-center py-4">
+            질문 내용...
+          </h3>
+
+          <div class="space-y-3">
+            <button onclick="answerTest('A')" id="testChoiceA" class="w-full p-4 text-left rounded-2xl bg-pink-50 hover:bg-pink-100 border border-pink-200 font-bold text-gray-800 transition">
+              옵션 A
+            </button>
+            <button onclick="answerTest('B')" id="testChoiceB" class="w-full p-4 text-left rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 font-bold text-gray-800 transition">
+              옵션 B
+            </button>
+          </div>
+        </div>
+
+        <!-- 테스트 결과 화면 -->
+        <div id="testResult" class="hidden text-center py-6 space-y-6">
+          <span class="text-xs font-black text-pink-600 bg-pink-100 px-3 py-1 rounded-full uppercase">진단 완료</span>
+          <h2 id="resultTypeName" class="text-2xl sm:text-3xl font-black text-gray-900">
+            "자유로운 쿨가이/쿨걸 유형"
+          </h2>
+
+          <div class="bg-white/80 p-6 rounded-2xl border border-pink-100 shadow-sm text-left space-y-4">
+            <p id="resultDescription" class="text-sm text-gray-700 leading-relaxed font-medium">
+              당신은 상대방의 사생활을 극도로 존중하며, 구속받는 것도 싫어하는 타입입니다. 하지만 때로는 냉정하다는 오해를 받을 수 있으니 따뜻한 표현을 더 늘려보세요!
+            </p>
+
+            <hr class="border-pink-100">
+
+            <!-- 능력치 지수 -->
+            <div class="space-y-3 pt-2 text-xs font-bold">
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-rose-600">집착 & 소유욕 지수</span>
+                  <span id="statObsession">40%</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div id="statObsessionBar" class="bg-rose-500 h-full" style="width: 40%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-purple-600">연애 꼰대 지수</span>
+                  <span id="statGgondae">25%</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div id="statGgondaeBar" class="bg-purple-500 h-full" style="width: 25%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-pink-600">로맨스 감성 지수</span>
+                  <span id="statRomance">85%</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div id="statRomanceBar" class="bg-pink-500 h-full" style="width: 85%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center space-x-3">
+            <button onclick="startTest()" class="bg-gray-800 text-white font-bold text-sm px-5 py-3 rounded-xl hover:bg-black transition">
+              다시 진단하기
+            </button>
+            <button onclick="copyTestResult()" class="bg-pink-500 text-white font-bold text-sm px-5 py-3 rounded-xl hover:bg-pink-600 transition">
+              결과 공유하기
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. 커스텀 질문 만들기 모드 -->
+    <section id="mode-custom" class="hidden space-y-6">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white space-y-6">
+        <div>
+          <h2 class="text-2xl font-black text-gray-900">나만의 밸런스 질문 만들기</h2>
+          <p class="text-xs text-gray-500 mt-1">
+            신박한 질문을 직접 만들어 브라우저에 저장하고 친구들과 즉시 플레이해보세요!
+          </p>
+        </div>
+
+        <form id="customForm" onsubmit="saveCustomQuestion(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">질문 제목</label>
+            <input type="text" id="custTitle" required placeholder="예: 평생 만날 때마다 비 오기 vs 식당마다 웨이팅 1시간" class="w-full p-3 text-sm rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-rose-600 mb-1">선택지 A</label>
+              <textarea id="custA" required rows="2" placeholder="선택지 A 내용을 적으세요" class="w-full p-3 text-sm rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-purple-600 mb-1">선택지 B</label>
+              <textarea id="custB" required rows="2" placeholder="선택지 B 내용을 적으세요" class="w-full p-3 text-sm rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"></textarea>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">카테고리</label>
+            <select id="custCat" class="w-full p-3 text-sm rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-semibold">
+              <option value="jealousy">🔥 질투·경계</option>
+              <option value="values">💭 연애가치관</option>
+              <option value="bizarre">🤪 황당·상상</option>
+              <option value="money">💰 현실·돈</option>
+              <option value="spicy">🌶️ 매운맛/19금</option>
+            </select>
+          </div>
+
+          <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-extrabold p-3.5 rounded-xl shadow-md hover:opacity-95 transition">
+            질문 등록 및 플레이
+          </button>
+        </form>
+
+        <!-- 내가 만든 질문 목록 -->
+        <div class="pt-4 border-t border-pink-100">
+          <h3 class="text-sm font-bold text-gray-800 mb-3">내가 등록한 질문 목록 (<span id="myCustCount">0</span>개)</h3>
+          <div id="myCustList" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+            <!-- 자바스크립트로 동적 동기화 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 토스트 알림 메시지 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+    알림 메시지
+  </div>
+
+  <script>
+    /* ===================================================
+       1. 질문 데이터베이스 (40개 이상 기본 수록)
+    =================================================== */
+    const defaultQuestions = [
+      // 1) 질투/경계 (jealousy)
+      {
+        id: 1,
+        cat: 'jealousy',
+        title: "더 참을 수 없는 내 애인의 상황은?",
+        a: "내 애인의 패딩 지퍼를 친절하게 끝까지 올려주는 내 절친",
+        b: "내 절친의 깻잎을 젓가락으로 차분히 떼어주는 내 애인",
+        statA: 52,
+        commentA: "친구와의 스킨십 경계선에 매우 민감하시군요!",
+        commentB: "애인의 다정한 친절이 더 거슬리는 타입입니다."
+      },
+      {
+        id: 2,
+        cat: 'jealousy',
+        title: "피가 거꾸로 솟는 상대방의 행동은?",
+        a: "밤 11시에 울면서 전화 온 이성 친구에게 달려가는 애인",
+        b: "전 애인과 커플로 맞췄던 100만 원짜리 명품 시계를 계속 차고 다니는 애인",
+        statA: 64,
+        commentA: "현재 진행형 이성 관계에 대한 불안이 크시네요.",
+        commentB: "과거의 흔적을 간직하는 꼴을 절대 못 보시네요!"
+      },
+      {
+        id: 3,
+        cat: 'jealousy',
+        title: "허용 가능한 이성 친구와의 마지노선은?",
+        a: "애인이 단둘이 영화 보고 카페 가기 (단, 연락 지속됨)",
+        b: "애인이 동창 여럿이서 1박 2일 단체 펜션 여행 가기",
+        statA: 41,
+        commentA: "1:1 만남보다 단체 밤샘 여행이 훨씬 위험하다고 판단했군요!",
+        commentB: "밀폐된 공간에서의 단둘이 만남을 절대 용납 못 하시는군요!"
+      },
+      {
+        id: 4,
+        cat: 'jealousy',
+        title: "더 소름 돋는 사생활 공유 상황은?",
+        a: "내 애인이 내 인스타그램/카톡 비밀번호를 알고 있음",
+        b: "내 애인 부모님이 내 개인 전화번호를 알고 매주 안부 연락을 함",
+        statA: 38,
+        commentA: "개인 정보와 디지털 사생활을 중요시하는 현대인이시군요.",
+        commentB: "부모님의 과도한 관심이 선을 넘는다고 느끼시는군요!"
+      },
+
+      // 2) 연애 가치관 (values)
+      {
+        id: 5,
+        cat: 'values',
+        title: "극단적인 연락 스타일 중 고른다면?",
+        a: "하루 딱 1번 연락 가능 (밤 10시에 5분 통화가 끝)",
+        b: "하루 연락 300번 (동선, 셀카, 식사 메뉴 실시간 사진 보고 필수)",
+        statA: 45,
+        commentA: "개인의 자유시간과 방목형 연애를 선호하시네요.",
+        commentB: "구속받더라도 서운한 것보다는 관심 받는 게 나은 타입!"
+      },
+      {
+        id: 6,
+        cat: 'values',
+        title: "더 감당하기 힘든 애인의 성격은?",
+        a: "나한테만 천사고 세상 모든 사람에게 싸가지 없고 까칠한 애인",
+        b: "만인에게 성인군자처럼 친절해서 주변에 이성이 차고 넘치는 애인",
+        statA: 55,
+        commentA: "나만의 특별 대우를 중요시하지만 사회적 평판도 살짝 불안!",
+        commentB: "남들에게 불친절해서 사고 치는 꼴은 차마 못 보시는군요."
+      },
+      {
+        id: 7,
+        cat: 'values',
+        title: "더 마음 상하는 이별의 형태는?",
+        a: "아무 말도 없이 모든 SNS/연락을 차단하는 '잠수 이별'",
+        b: "대놓고 딴 사람 생겼다고 통보하는 '바람 공개 이별'",
+        statA: 71,
+        commentA: "원인이라도 알고 싶은 답답함을 가장 참기 힘들어하시네요.",
+        commentB: "배신감은 차라리 사유라도 명확한 게 낫다고 생각하시는군요!"
+      },
+      {
+        id: 8,
+        cat: 'values',
+        title: "다퉜을 때 더 선호하는 해결 방식은?",
+        a: "화나도 당장 만나서 밤을 새워서라도 그 자리에서 풀기",
+        b: "서로 감정이 식을 때까지 최소 하루 동안 생각할 시간 갖기",
+        statA: 49,
+        commentA: "칼로 물 베기처럼 즉시 해결해야 잠이 오는 즉각 반응형!",
+        commentB: "감정적인 막말을 피하고 이성적으로 정리할 시간이 필요한 심사숙고형!"
+      },
+
+      // 3) 황당/상상 (bizarre)
+      {
+        id: 9,
+        cat: 'bizarre',
+        title: "더 매력적인 애인 후보는?",
+        a: "외모는 완벽한 100% 이상형이지만 대화할 때 리액션이 0%인 로봇 애인",
+        b: "외모는 전혀 내 스타일이 아니지만 말만 하면 배꼽 잡게 재밌는 애인",
+        statA: 35,
+        commentA: "얼굴이 개연성이다! 티키타카보다 비주얼을 선택하셨습니다.",
+        commentB: "연애는 결국 유머 감각과 대화의 즐거움이 진리라고 보는 타입!"
+      },
+      {
+        id: 10,
+        cat: 'bizarre',
+        title: "평생 따라다니는 데이트 저주는?",
+        a: "만날 때마다 무조건 장대비가 내리는 '날씨 요괴' 애인",
+        b: "밥 먹으러 갈 때마다 식당에서 웨이팅 1시간 기본인 '웨이팅 요괴' 애인",
+        statA: 58,
+        commentA: "기다리는 지루함보다는 차라리 우산 쓰는 게 낫다는 선택!",
+        commentB: "비 맞아서 옷 젖고 꿉꿉한 데이트는 정말 절대 사절이시군요."
+      },
+      {
+        id: 11,
+        cat: 'bizarre',
+        title: "평생 체취 저주 중 하나를 골라야 한다면?",
+        a: "내 몸에서 평생 생오이 냄새가 진동함",
+        b: "애인 몸에서 평생 구운 마늘 냄새가 진동함",
+        statA: 50,
+        commentA: "나한테 냄새나는 건 참아도 상대방 향기는 양보 못 하시는군요!",
+        commentB: "차라리 애인의 고기 쌈 향기를 품어주는 희생파!"
+      },
+
+      // 4) 현실/돈 (money)
+      {
+        id: 12,
+        cat: 'money',
+        title: "더 현실적으로 끌리는 조건은?",
+        a: "연봉 1억 5천이지만 지방 근무라 한 달에 1번 보는 애인",
+        b: "연봉 3천 5백이지만 칼퇴하고 매일 같이 저녁 먹는 애인",
+        statA: 53,
+        commentA: "경제적 풍요와 각자의 삶을 중시하는 현실적인 타입!",
+        commentB: "돈보다 함께 보내는 시간의 가치를 더 높게 평가하시네요."
+      },
+      {
+        id: 13,
+        cat: 'money',
+        title: "결혼을 앞두고 더 감당할 수 있는 상황은?",
+        a: "애인 통장에 빚이 5천만 원 있음 (사치/코인으로 인한 빚)",
+        b: "애인은 통장에 1억이 있지만 극심한 자린고비라 데이트 비용도 100원 단위 더치페이",
+        statA: 28,
+        commentA: "짠돌이와 평생 사는 답답함보다는 차라리 빚 갚는 게 낫다?!",
+        commentB: "아무리 돈이 많아도 씀씀이 습관과 빚은 절대 못 받아들이는 타입!"
+      },
+
+      // 5) 매운맛/19금 (spicy)
+      {
+        id: 14,
+        cat: 'spicy',
+        title: "궁합의 기로, 당신의 선택은?",
+        a: "속궁합은 100% 최고인데 대화/성격 겉궁합은 0%인 애인",
+        b: "성격/개그코드 겉궁합은 100% 최고인데 속궁합은 0%인 애인",
+        statA: 33,
+        commentA: "본능적인 스킨십과 피지컬 매력을 핵심으로 생각하시네요!",
+        commentB: "정신적인 교감과 대화가 통해야 연애가 유지된다고 보시는군요."
+      },
+      {
+        id: 15,
+        cat: 'spicy',
+        title: "애인의 과거 연애 경험 중 더 부담스러운 것은?",
+        a: "모태솔로이며 내가 첫 연애 대상임 (하나부터 열까지 가르쳐야 함)",
+        b: "과거 연애 경험이 30명 이상인 연애 베테랑",
+        statA: 60,
+        commentA: "화려한 과거보다는 차라리 순수한 도화지가 낫다는 선택!",
+        commentB: "답답한 모솔보다는 차라리 노련한 연애 상수가 편하다는 선택!"
+      }
+    ];
+
+    // 10문항 진단 테스트 질문 데이터
+    const testQuestions = [
+      { q: "애인이 내 친구들과의 술자리에 같이 가고 싶어 한다면?", a: "기꺼이 데려가서 소개해 준다.", b: "친구들과의 시간은 따로 보내는 게 편하다." },
+      { q: "애인의 SNS에 낯선 이성이 훈훈한 댓글을 달았다면?", a: "누구냐고 바로 물어본다.", b: "별 신경 쓰지 않고 넘어간다." },
+      { q: "데이트 비용 분담에 대한 나의 생각은?", a: "철저하게 5:5로 나누는 게 깔끔하다.", b: "번갈아 내거나 여유 있는 사람이 더 내면 된다." },
+      { q: "기념일(100일, 매년 생일 등) 챙기기는?", a: "선물과 이벤트는 필수적으로 크게 챙겨야 한다.", b: "맛있는 밥 한 끼 먹으면 충분하다." },
+      { q: "애인이 이성 친구와 단둘이 카페에서 만난다면?", a: "절대 이해 못 한다. 당장 금지!", b: "단둘이 커피 한잔 정도는 괜찮다." },
+      { q: "싸우고 난 뒤 나의 연락 스타일은?", a: "몇 시간 내로 당장 화해해야 직성이 풀린다.", b: "하루 정도는 서로 시간을 가지는 게 맞다." },
+      { q: "애인의 과거 연애사에 대해 물어본다면?", a: "궁금하니까 세세하게 다 듣고 싶다.", b: "알고 싶지 않고 안 묻는 게 예의다." },
+      { q: "휴대폰 비밀번호 공유에 대해?", a: "서로 신뢰의 의미로 공유할 수 있다.", b: "아무리 연인이어도 사생활 영역이다." },
+      { q: "애인의 패션/헤어 스타일이 마음에 안 든다면?", a: "내 스타일대로 바꾸도록 솔직하게 권유한다.", b: "상대의 취향이므로 존중하고 참는다." },
+      { q: "주말 데이트 약속에 대한 생각은?", a: "매주 주말은 무조건 애인과 보내야 한다.", b: "격주나 개인 일정에 따라 조정할 수 있다." }
+    ];
+
+    /* ===================================================
+       2. 상태 관리 (State Management)
+    =================================================== */
+    let allQuestions = [];
+    let currentCategory = 'ALL';
+    let filteredQuestions = [];
+    let currentIndex = 0;
+    let answeredQuestions = new Set();
+    let isSoundOn = true;
+
+    // 진단 테스트 상태
+    let testCurrentStep = 0;
+    let testAnswers = [];
+
+    /* ===================================================
+       3. 웹 오디오 API 효과음 (Web Audio Synth)
+    =================================================== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!isSoundOn) return;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'click') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'select') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'fanfare') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
+        osc.frequency.setValueAtTime(783.99, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    }
+
+    function toggleSound() {
+      isSoundOn = !isSoundOn;
+      const icon = document.getElementById('soundIcon');
+      if (isSoundOn) {
+        icon.className = 'fa-solid fa-volume-high';
+        showToast('🔊 효과음이 켜졌습니다.');
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark';
+        showToast('🔇 효과음이 꺼졌습니다.');
+      }
+    }
+
+    /* ===================================================
+       4. 초기화 & 탭 전환
+    =================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCustomQuestions();
+      allQuestions = [...defaultQuestions, ...getStoredCustomQuestions()];
+      filterQuestions();
+      renderCurrentQuestion();
+    });
+
+    function switchMode(mode) {
+      playSound('click');
+      document.getElementById('mode-balance').classList.add('hidden');
+      document.getElementById('mode-test').classList.add('hidden');
+      document.getElementById('mode-custom').classList.add('hidden');
+
+      document.getElementById('tab-balance').className = "flex-1 py-2.5 rounded-lg text-center transition text-gray-500 hover:text-pink-600";
+      document.getElementById('tab-test').className = "flex-1 py-2.5 rounded-lg text-center transition text-gray-500 hover:text-pink-600";
+      document.getElementById('tab-custom').className = "flex-1 py-2.5 rounded-lg text-center transition text-gray-500 hover:text-pink-600";
+
+      if (mode === 'balance') {
+        document.getElementById('mode-balance').classList.remove('hidden');
+        document.getElementById('tab-balance').className = "flex-1 py-2.5 rounded-lg text-center transition bg-pink-500 text-white shadow-sm";
+      } else if (mode === 'test') {
+        document.getElementById('mode-test').classList.remove('hidden');
+        document.getElementById('tab-test').className = "flex-1 py-2.5 rounded-lg text-center transition bg-pink-500 text-white shadow-sm";
+      } else if (mode === 'custom') {
+        document.getElementById('mode-custom').classList.remove('hidden');
+        document.getElementById('tab-custom').className = "flex-1 py-2.5 rounded-lg text-center transition bg-pink-500 text-white shadow-sm";
+        renderMyCustomList();
+      }
+    }
+
+    /* ===================================================
+       5. 밸런스 게임 로직
+    =================================================== */
+    function setCategory(cat) {
+      playSound('click');
+      currentCategory = cat;
+
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.dataset.cat === cat) {
+          btn.className = "cat-btn bg-pink-600 text-white px-3.5 py-1.5 rounded-full transition shadow-sm font-bold";
+        } else {
+          btn.className = "cat-btn bg-white text-gray-600 hover:bg-pink-50 px-3.5 py-1.5 rounded-full transition border border-pink-200";
+        }
+      });
+
+      filterQuestions();
+      currentIndex = 0;
+      renderCurrentQuestion();
+    }
+
+    function filterQuestions() {
+      if (currentCategory === 'ALL') {
+        filteredQuestions = [...allQuestions];
+      } else {
+        filteredQuestions = allQuestions.filter(q => q.cat === currentCategory);
+      }
+      filteredQuestions.sort(() => Math.random() - 0.5);
+    }
+
+    function renderCurrentQuestion() {
+      if (filteredQuestions.length === 0) return;
+      const q = filteredQuestions[currentIndex];
+
+      document.getElementById('questionTitle').innerText = q.title;
+      document.getElementById('textA').innerText = q.a;
+      document.getElementById('textB').innerText = q.b;
+
+      const catMap = {
+        jealousy: "🔥 질투·경계",
+        values: "💭 연애가치관",
+        bizarre: "🤪 황당·상상",
+        money: "💰 현실·돈",
+        spicy: "🌶️ 매운맛/19금"
+      };
+      document.getElementById('questionCategoryTag').innerText = catMap[q.cat] || "💖 밸런스";
+
+      document.getElementById('resultA').classList.add('hidden');
+      document.getElementById('resultB').classList.add('hidden');
+      document.getElementById('commentBox').classList.add('hidden');
+      document.getElementById('nextBtn').classList.add('hidden');
+
+      document.getElementById('btnA').disabled = false;
+      document.getElementById('btnB').disabled = false;
+      document.getElementById('btnA').className = "choice-btn group relative bg-gradient-to-br from-rose-50 to-pink-100 hover:from-rose-100 hover:to-pink-200 border-2 border-rose-200 rounded-2xl p-6 md:pr-10 text-left flex flex-col justify-between min-h-[170px] select-none";
+      document.getElementById('btnB').className = "choice-btn group relative bg-gradient-to-br from-purple-50 to-indigo-100 hover:from-purple-100 hover:to-indigo-200 border-2 border-purple-200 rounded-2xl p-6 md:pl-10 text-left flex flex-col justify-between min-h-[170px] select-none";
+    }
+
+    function chooseOption(choice) {
+      playSound('select');
+      const q = filteredQuestions[currentIndex];
+
+      answeredQuestions.add(q.id);
+      document.getElementById('answeredCount').innerText = answeredQuestions.size;
+
+      document.getElementById('btnA').disabled = true;
+      document.getElementById('btnB').disabled = true;
+
+      const statA = q.statA || 50;
+      const statB = 100 - statA;
+
+      if (choice === 'A') {
+        document.getElementById('btnA').classList.add('ring-4', 'ring-rose-400', 'bg-rose-100');
+      } else {
+        document.getElementById('btnB').classList.add('ring-4', 'ring-purple-400', 'bg-purple-100');
+      }
+
+      document.getElementById('resultA').classList.remove('hidden');
+      document.getElementById('resultB').classList.remove('hidden');
+
+      document.getElementById('percentA').innerText = `${statA}%`;
+      document.getElementById('percentB').innerText = `${statB}%`;
+
+      setTimeout(() => {
+        document.getElementById('barA').style.width = `${statA}%`;
+        document.getElementById('barB').style.width = `${statB}%`;
+      }, 50);
+
+      const comment = choice === 'A' ? (q.commentA || "많은 사람들의 공감을 얻은 선택입니다!") : (q.commentB || "개성 있는 가치관을 가지고 계시는군요!");
+      document.getElementById('commentText').innerText = `💬 AI 분석: "${comment}"`;
+      document.getElementById('commentBox').classList.remove('hidden');
+
+      document.getElementById('nextBtn').classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+      playSound('click');
+      currentIndex++;
+      if (currentIndex >= filteredQuestions.length) {
+        currentIndex = 0;
+        filterQuestions();
+        showToast('🎉 모든 질문을 한 바퀴 돌았습니다! 새로운 순서로 시작합니다.');
+      }
+      renderCurrentQuestion();
+    }
+
+    function shareCurrentQuestion() {
+      const q = filteredQuestions[currentIndex];
+      const shareText = `[연애 밸런스 게임]\n\n❓ ${q.title}\n\nA. ${q.a}\nVS\nB. ${q.b}\n\n너의 선택은?`;
+      
+      navigator.clipboard.writeText(shareText).then(() => {
+        showToast('📋 질문이 클립보드에 복사되었습니다! 친구에게 공유해보세요.');
+      }).catch(() => {
+        showToast('복사에 실패했습니다.');
+      });
+    }
+
+    /* ===================================================
+       6. 연애성향 진단 테스트 로직
+    =================================================== */
+    function startTest() {
+      playSound('click');
+      testCurrentStep = 0;
+      testAnswers = [];
+      document.getElementById('testIntro').classList.add('hidden');
+      document.getElementById('testResult').classList.add('hidden');
+      document.getElementById('testQuiz').classList.remove('hidden');
+      renderTestStep();
+    }
+
+    function renderTestStep() {
+      const q = testQuestions[testCurrentStep];
+      document.getElementById('testStep').innerText = `진행도: ${testCurrentStep + 1} / ${testQuestions.length}`;
+      const percent = Math.round(((testCurrentStep + 1) / testQuestions.length) * 100);
+      document.getElementById('testPercent').innerText = `${percent}%`;
+      document.getElementById('testProgressBar').style.width = `${percent}%`;
+
+      document.getElementById('testQuestionTitle').innerText = `Q${testCurrentStep + 1}. ${q.q}`;
+      document.getElementById('testChoiceA').innerText = `A. ${q.a}`;
+      document.getElementById('testChoiceB').innerText = `B. ${q.b}`;
+    }
+
+    function answerTest(choice) {
+      playSound('select');
+      testAnswers.push(choice);
+      testCurrentStep++;
+
+      if (testCurrentStep < testQuestions.length) {
+        renderTestStep();
+      } else {
+        finishTest();
+      }
+    }
+
+    function finishTest() {
+      playSound('fanfare');
+      document.getElementById('testQuiz').classList.add('hidden');
+      document.getElementById('testResult').classList.remove('hidden');
+
+      const countA = testAnswers.filter(a => a === 'A').length;
+      
+      let typeName = "";
+      let desc = "";
+      let obsession = 0;
+      let ggondae = 0;
+      let romance = 0;
+
+      if (countA >= 8) {
+        typeName = "🔥 '확신의 직진! 열정 과다형'";
+        desc = "상대방에 대한 애정이 매우 크고 연애에 진심인 타입입니다! 확실한 표현과 확답을 좋아하지만, 때로는 상대방에게 살짝 부담이 될 수도 있으니 밀당의 여유를 가져보세요.";
+        obsession = 85; ggondae = 70; romance = 95;
+      } else if (countA >= 5) {
+        typeName = "⚖️ '균형 감각 완벽한 다정형'";
+        desc = "적당한 집착과 적당한 쿨함이 어우러진 가장 이상적인 연애 가치관의 소유자입니다! 상대방을 배려할 줄 알며 다정한 연애를 이끌어가는 능력이 탁월합니다.";
+        obsession = 50; ggondae = 35; romance = 80;
+      } else if (countA >= 3) {
+        typeName = "🌿 '사생활 존중! 쿨병 장인형'";
+        desc = "구속받는 것도, 구속하는 것도 싫어하는 자유로운 영혼입니다. 깔끔하고 쿨한 연애를 선호하지만, 가끔은 상대방이 '나한테 관심이 없나?'라고 서운해할 수 있습니다.";
+        obsession = 25; ggondae = 15; romance = 60;
+      } else {
+        typeName = "🧊 '절대 영역 보존! 개인주의형'";
+        desc = "연애도 중요하지만 나의 삶과 개인 영역이 무조건 1순위인 사람입니다. 확실한 사생활 보호를 원하며, 대화할 때 솔직담백한 게 최우선입니다.";
+        obsession = 10; ggondae = 10; romance = 40;
+      }
+
+      document.getElementById('resultTypeName').innerText = typeName;
+      document.getElementById('resultDescription').innerText = desc;
+
+      document.getElementById('statObsession').innerText = `${obsession}%`;
+      document.getElementById('statObsessionBar').style.width = `${obsession}%`;
+
+      document.getElementById('statGgondae').innerText = `${ggondae}%`;
+      document.getElementById('statGgondaeBar').style.width = `${ggondae}%`;
+
+      document.getElementById('statRomance').innerText = `${romance}%`;
+      document.getElementById('statRomanceBar').style.width = `${romance}%`;
+    }
+
+    function copyTestResult() {
+      const typeName = document.getElementById('resultTypeName').innerText;
+      const shareText = `[연애성향 진단 결과]\n내 연애 유형은? ${typeName}\n\n너도 당신의 연애 꼰대 지수를 테스트해보세요!`;
+      
+      navigator.clipboard.writeText(shareText).then(() => {
+        showToast('📋 진단 결과가 클립보드에 복사되었습니다!');
+      });
+    }
+
+    /* ===================================================
+       7. 나만의 커스텀 질문 만들기
+    =================================================== */
+    function saveCustomQuestion(e) {
+      e.preventDefault();
+      playSound('fanfare');
+
+      const title = document.getElementById('custTitle').value.trim();
+      const a = document.getElementById('custA').value.trim();
+      const b = document.getElementById('custB').value.trim();
+      const cat = document.getElementById('custCat').value;
+
+      const newQ = {
+        id: Date.now(),
+        cat: cat,
+        title: title,
+        a: a,
+        b: b,
+        statA: 50,
+        commentA: "내가 직접 만든 따끈따끈한 커스텀 질문입니다!",
+        commentB: "커스텀 질문 선택 완료!"
+      };
+
+      const stored = getStoredCustomQuestions();
+      stored.unshift(newQ);
+      localStorage.setItem('my_custom_questions', JSON.stringify(stored));
+
+      allQuestions.unshift(newQ);
+
+      document.getElementById('customForm').reset();
+      showToast('🎉 질문이 성공적으로 저장되었습니다!');
+
+      renderMyCustomList();
+
+      switchMode('balance');
+      currentCategory = 'ALL';
+      filterQuestions();
+      currentIndex = filteredQuestions.findIndex(q => q.id === newQ.id);
+      if (currentIndex === -1) currentIndex = 0;
+      renderCurrentQuestion();
+    }
+
+    function getStoredCustomQuestions() {
+      return JSON.parse(localStorage.getItem('my_custom_questions') || '[]');
+    }
+
+    function loadCustomQuestions() {
+      renderMyCustomList();
+    }
+
+    function renderMyCustomList() {
+      const list = getStoredCustomQuestions();
+      document.getElementById('myCustCount').innerText = list.length;
+      const container = document.getElementById('myCustList');
+
+      if (list.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 py-2">아직 직접 등록한 질문이 없습니다.</p>`;
+        return;
+      }
+
+      container.innerHTML = list.map(q => `
+        <div class="flex justify-between items-center bg-white p-2.5 rounded-xl border border-pink-100 shadow-sm">
+          <div class="truncate mr-2">
+            <span class="font-bold text-gray-800">${q.title}</span>
+          </div>
+          <button onclick="deleteCustomQuestion(${q.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0">
+            삭제
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function deleteCustomQuestion(id) {
+      playSound('click');
+      let stored = getStoredCustomQuestions();
+      stored = stored.filter(q => q.id !== id);
+      localStorage.setItem('my_custom_questions', JSON.stringify(stored));
+      
+      allQuestions = allQuestions.filter(q => q.id !== id);
+      renderMyCustomList();
+      showToast('🗑️ 커스텀 질문이 삭제되었습니다.');
+    }
+
+    /* ===================================================
+       8. 유틸리티 (토스트 메시지)
+    =================================================== */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
